@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from urllib.request import Request, urlopen
 from zipfile import ZIP_DEFLATED, ZipFile
-from fontTools.ttLib import TTFont
+from fontTools.ttLib import TTFont, newTable
 from fontTools.merge import Merger
 from source.py.task._utils import is_ci, default_weight_map
 
@@ -206,12 +206,10 @@ def verify_glyph_width(
         print(f"✅ Verified glyph width in {file_name}")
         return
 
-    print(f"Every glyph's width should be in {expect_widths}, but these are not:")
-    for item in result:
-        print(f"{item[0]}  =>  {item[1]}")
+    unexpected_glyphs = "\n".join([f"{item[0]}  =>  {item[1]}" for item in result])
 
     raise Exception(
-        f"{file_name or 'The font'} may contain glyphs that width is not in {expect_widths}, which may broke monospace rule."
+        f"{file_name or 'The font'} may contains glyphs that width is not in {expect_widths}, which may broke monospace rule.\n{unexpected_glyphs}"
     )
 
 
@@ -404,13 +402,14 @@ def add_ital_axis_to_stat(font: TTFont):
     stat_table.AxisValueCount += 1
 
 
-def adjust_line_height(font: TTFont, factor: float) -> None:
+def adjust_line_height(
+    font: TTFont, factor: float, metric: tuple[float, float]
+) -> None:
     """
     Adjust the line height of the font by modifying the hhea and OS/2 table.
-
-    Offset is ``int(550 * (factor - 1))``
     """
-    if factor == 1.0:
+
+    if factor == 1:
         return
 
     if "hhea" not in font:
@@ -420,14 +419,26 @@ def adjust_line_height(font: TTFont, factor: float) -> None:
 
     hhea = font["hhea"]
     os2 = font["OS/2"]
-    offset = int(550 * (factor - 1))  # type: ignore
-    hhea.ascender += offset  # type: ignore
-    hhea.descender -= offset  # type: ignore
-    os2.sTypoAscender += offset  # type: ignore
-    os2.sTypoDescender -= offset  # type: ignore
-    os2.usWinAscent += offset  # type: ignore
-    # this is correct since this value is positive
-    os2.usWinDescent += offset  # type: ignore
+
+    asc, desc = metric
+    # Maintain original ascender/descender ratio
+    ascender_ratio = asc / (asc - desc)  # type: ignore
+    # Calculate target total height
+    target_total_height = int(round(factor * (asc - desc)))
+
+    # Calculate new metrics
+    new_ascender = int(round(target_total_height * ascender_ratio))
+    new_descender = new_ascender - target_total_height
+
+    print(f"Change vertical metric to [{new_ascender}, {new_descender}]")
+
+    # Apply changes to hhea table
+    hhea.ascent = new_ascender  # type: ignore
+    hhea.descent = new_descender  # type: ignore
+    os2.sTypoAscender = new_ascender  # type: ignore
+    os2.sTypoDescender = new_descender  # type: ignore
+    os2.usWinAscent = new_ascender  # type: ignore
+    os2.usWinDescent = -new_descender  # type: ignore
 
 
 def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
@@ -452,12 +463,12 @@ def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
         if weight_name and weight_name in all_weight_map:
             instance.coordinates["wght"] = all_weight_map[weight_name]
 
-    axes = font["fvar"].axes # type: ignore
+    axes = font["fvar"].axes  # type: ignore
     wght_index = next((i for i, ax in enumerate(axes) if ax.axisTag == "wght"), None)
     if wght_index is None:
         return
 
-    stat = font["STAT"].table # type: ignore
+    stat = font["STAT"].table  # type: ignore
     if not stat.AxisValueArray:
         return
 
@@ -496,3 +507,48 @@ def patch_instance(font: TTFont, all_weight_map: dict[str, int]):
         if fmt not in handlers or (fmt != 4 and av.AxisIndex != wght_index):
             continue
         handlers[fmt](av)
+
+
+def add_gasp(font: TTFont):
+    print("Fix GASP table")
+    gasp = newTable("gasp")
+    gasp.gaspRange = {65535: 15}  # type: ignore
+    font["gasp"] = gasp
+
+
+def change_glyph_width_or_scale(
+    font: TTFont,
+    match_width: int,
+    target_width: int,
+    scale_factor: tuple[float, float],
+    skip_name: list[str],
+):
+    font["hhea"].advanceWidthMax = target_width  # type: ignore
+    for name in font.getGlyphOrder():
+        if name in skip_name:
+            continue
+
+        glyph = font["glyf"][name]  # type: ignore
+        width, lsb = font["hmtx"][name]  # type: ignore
+        if width != match_width:
+            continue
+        if glyph.numberOfContours == 0:
+            font["hmtx"][name] = (target_width, lsb)  # type: ignore
+            continue
+
+        scale_w, scale_h = scale_factor
+        glyph.coordinates.scale((scale_w, scale_h))
+        glyph.xMin, glyph.yMin, glyph.xMax, glyph.yMax = (
+            glyph.coordinates.calcIntBounds()
+        )
+
+        scaled_width = int(round(width * scale_w))
+        delta = (target_width - scaled_width) / 2
+
+        glyph.coordinates.translate((delta, 0))
+        glyph.xMin, glyph.yMin, glyph.xMax, glyph.yMax = (
+            glyph.coordinates.calcIntBounds()
+        )
+
+        new_lsb = lsb + int(round(delta))
+        font["hmtx"][name] = (target_width, new_lsb)  # type: ignore

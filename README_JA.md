@@ -550,9 +550,10 @@ pip install -r requirements.txt
 python build.py
 ```
 
-- `Ubuntu` または `Debian` の場合、`python-is-python3` も必要な場合があります。
-
-依存関係のインストールに問題がある場合は、新しい GitHub Codespace を作成し、そこでコマンドを実行してください。
+> [!TIP]
+> `Ubuntu` または `Debian` の場合、`python-is-python3` も必要な場合があります。
+>
+> 依存関係のインストールに問題がある場合は、新しい GitHub Codespace を作成し、そこでコマンドを実行してください。
 
 #### カスタム Nerd-Font
 
@@ -597,11 +598,13 @@ OpenType Feature は、フォントに組み込まれたバリエーションや
 
 デフォルトでは、[`source/py/feature/`](./source/py/feature) 内の Python モジュールが OpenType Feature 文字列を生成し、ビルド時にロードします。ここで機能を変更したりカスタムタグを設定することができます。
 
-OpenType Feature ファイルを直接編集して実現したい場合、`build.py`  を実行する際に `--apply-fea-file` 引数を追加すると、[`source/features/{regular,italic}.fea`](./source/features) の特性ファイルが読み込まれ、適用されます。
+OpenType Feature ファイルを直接編集して実現したい場合、`build.py`  を実行する際に `--apply-fea-file` 引数を追加すると、[`source/features/{regular,italic}{_cn,}.fea`](./source/features) の特性ファイルが読み込まれ、適用されます。
 
 #### 無限矢印リガチャ
 
-Fira Codeに着想を得て、このフォントはv7.3からデフォルトで無限の矢印リガチャを有効にします。何らかの理由で、hintedフォントを使用するとリガチャがずれてしまうため、v7.4のhintedバージョンではデフォルトでそれを削除しました。`config.json` に `"keep_infinite_arrow": true` を設定するか、CLI フラグに `--keep-infinite-arrow` を追加してください。詳細は [#508](https://github.com/subframe7536/maple-font/issues/508) を参照してください
+Fira Codeに着想を得て、このフォントはv7.3からデフォルトで無限の矢印リガチャを有効にします。何らかの理由で、hintedフォントを使用するとリガチャがずれてしまうため、v7.4のhintedバージョンではデフォルトでそれを削除しました。
+
+`config.json` に `"infinite_arrow": true` を設定するか、CLI フラグに `--infinite-arrow` を追加してください。詳細は [#508](https://github.com/subframe7536/maple-font/issues/508) を参照してください
 
 #### カスタムフォントウェイトマッピング
 
@@ -674,9 +677,6 @@ Feature Options:
   --no-hinted           NF / CN / NF-CNでヒントなしフォントをベースフォントとして使用
   --liga                すべてのリガチャを保持（デフォルト）
   --no-liga             すべてのリガチャを削除
-  --keep-infinite-arrow
-                        （非推奨）ヒンテッドフォントで無限矢印リガチャを保持します
-                        （デフォルトで削除）
   --infinite-arrow      無限アローリガチャを有効にする（hinted フォントではデフォルト
                         で無効）
   --remove-tag-liga     純テキストタグのリガチャ、例えば `[TODO]` を削除する。
@@ -731,7 +731,13 @@ Build Options:
 
 ## スター履歴
 
-[![Star History Chart](https://api.star-history.com/svg?repos=subframe7536/maple-font&type=Date)](https://www.star-history.com/#subframe7536/maple-font&Date)
+<a href="https://www.star-history.com/#subframe7536/maple-font&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=subframe7536/maple-font&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=subframe7536/maple-font&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=subframe7536/maple-font&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ## ライセンス
 
