@@ -12,7 +12,7 @@ def cv04_subst_regular():
 def cv04_subst_italic():
     return ast.subst_map(
         [
-            *GLYPHS_L,
+            # *GLYPHS_L,
             *GLYPHS_1,
             # ast.gly("Cl"),
             # ast.gly("al"),
