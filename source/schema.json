@@ -125,6 +125,16 @@
       "description": "Scale factor for line height. (e.g. 1.1)",
       "default": 1.0
     },
+    "width": {
+      "type": "string",
+      "enum": [
+        "default",
+        "narrow",
+        "slim"
+      ],
+      "description": "Set glyph width: default (600), narrow (550), slim (500)",
+      "default": "default"
+    },
     "ttfautohint_param": {
       "type": "object",
       "description": "Parameters for ttfautohint, see details in https://freetype.org/ttfautohint/doc/ttfautohint.html#options",

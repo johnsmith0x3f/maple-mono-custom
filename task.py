@@ -56,6 +56,8 @@ def main():
         help="Write changelog to release note file (auto write in CI)",
     )
 
+    command.add_parser("merge", help="Merge and instantiate fonts")
+
     args = parser.parse_args()
     if args.command == "nf":
         from source.py.task.nerdfont import nerd_font
@@ -83,6 +85,10 @@ def main():
         from source.py.task.publish import publish
 
         publish(args.write)
+    elif args.command == "merge":
+        from source.py.task.merge_font import main
+
+        main()
     else:
         print("Test only")
         from source.py.in_browser import main
